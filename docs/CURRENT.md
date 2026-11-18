@@ -13,3 +13,7 @@
 - `tools/build.py prompts` が設定画・コマの絵に画風のお手本を、写植に文字入れのお手本を自動で添付する（指示文に「画風だけ真似る・顔・構図・台詞は写さない」を入れる）
 - 試験: お手本つきで Codex に2枚（コマの絵1・写植1）作らせた → 台詞は指示どおり・お手本の台詞の写り込みなし・作り直しなし（約10分）
 - 自分の好きな画風に替える手順は `refs/README.md`
+
+## 2026-11-18 夜 GitHub に公開
+- https://github.com/kentakun709/manga-flow-kit （public）。外から開けることを確かめた（ページ・AGENTS.md・お手本の画像とも 200）
+- 友達は Codex に「https://github.com/kentakun709/manga-flow-kit を clone して、中の AGENTS.md に従って漫画を1本作って。題材：〇〇」と送るだけ
