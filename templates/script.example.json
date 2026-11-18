@@ -1,0 +1,63 @@
+{
+  "title": "見本：朝が苦手な会社員が、夜の習慣を1つ変える話",
+  "width": 1080,
+  "style": "",
+  "cast": {
+    "C1": {
+      "name": "サキ",
+      "look": "the young woman with a short brown bob and a white blouse",
+      "desc": "SAKI: Japanese woman, 28, office worker, short brown bob with side-swept bangs, round soft eyes, light natural makeup, slim build, white blouse with a navy cardigan",
+      "sheet": true
+    },
+    "C2": {
+      "name": "マユミ",
+      "look": "the older woman with long black hair tied back and glasses",
+      "desc": "MAYUMI: Japanese woman, 36, Saki's senior colleague, long straight black hair tied in a low ponytail, thin black-rimmed glasses, calm confident face, grey blazer over a black top",
+      "sheet": true
+    }
+  },
+  "pages": [
+    {
+      "type": "panel", "id": "P01", "aspect": "3:2", "cast": ["C1"],
+      "scene": "Bright morning in a small tidy apartment. SAKI bust-up by a sunny window holding a mug of coffee, eyes bright, a big refreshed smile, soft sparkles in the air. Her face occupies the LEFT half; the upper-right is plain bright wall.",
+      "text": [
+        {"kind": "speech", "who": "C1", "pos": "TR", "size": "M", "text": "朝って|こんなに|気持ちよかった|んだ…！"}
+      ]
+    },
+    {"type": "band", "id": "B01", "lines": ["その、ひと月前。"]},
+    {
+      "type": "panel", "id": "P02", "aspect": "2:3", "cast": ["C1"],
+      "scene": "Dim bedroom, early morning. SAKI sitting up in bed in pajamas, hair messy, eyes wide in panic, staring at a smartphone alarm clock in her hand; sweat drops, radial concentration lines. Her face occupies the CENTER-LEFT; the upper-right is plain dark wall.",
+      "text": [
+        {"kind": "box", "pos": "TR", "size": "M", "text": "私はサキ。|28歳。|毎朝ギリギリ。"},
+        {"kind": "speech", "who": "C1", "pos": "TL", "size": "L", "shape": "burst", "text": "また|寝坊！！"},
+        {"kind": "label", "pos": "BR", "text": "佐藤サキ(28)"}
+      ]
+    },
+    {
+      "type": "panel", "id": "P03", "aspect": "3:2", "cast": ["C1", "C2"],
+      "scene": "Office, wide shot. Concerned MAYUMI stands RIGHT; exhausted SAKI sits LEFT at a desk. Both faces are at the SAME height, entirely in the LOWER HALF. The UPPER HALF is EMPTY plain office wall, with no heads, hair, hands or objects.",
+      "text": [
+        {"kind": "speech", "who": "C2", "pos": "TR", "size": "M", "text": "サキちゃん|最近|顔色悪いよ？"},
+        {"kind": "speech", "who": "C1", "pos": "TL", "size": "M", "text": "夜つい|スマホ|見ちゃって…"}
+      ]
+    },
+    {
+      "type": "panel", "id": "P04", "aspect": "3:2", "cast": ["C1", "C2"],
+      "scene": "Office break room, wide shot. Small figures in the CENTER: MAYUMI at center-right smiles and raises one finger; SAKI at center-left looks doubtful. Both heads below the middle line. Keep the UPPER HALF and LOWER-LEFT quarter as EMPTY plain wall.",
+      "text": [
+        {"kind": "speech", "who": "C2", "pos": "TR", "size": "M", "text": "寝る1時間前に|《スマホを|別の部屋》へ。|それだけ"},
+        {"kind": "speech", "who": "C1", "pos": "BL", "size": "S", "shape": "black", "text": "そんな|ことで…？"}
+      ]
+    },
+    {"type": "band", "id": "B02", "lines": ["半信半疑で、試してみたら…"]},
+    {
+      "type": "panel", "id": "P05", "aspect": "3:2", "cast": ["C1"],
+      "scene": "Early morning, bedroom bathed in soft sunrise light. SAKI stretching happily in bed before the alarm rings, the smartphone nowhere in the room, a small alarm clock on the side table. Her face occupies the CENTER; the upper-right and the left side are plain wall and curtain.",
+      "text": [
+        {"kind": "box", "pos": "TR", "size": "M", "text": "3日目には|アラームより|先に目が覚めた。"},
+        {"kind": "speech", "who": "C1", "pos": "L", "size": "M", "text": "《毎朝が|楽しみ！》"}
+      ]
+    }
+  ]
+}
