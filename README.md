@@ -33,6 +33,7 @@ https://github.com/kentakun709/manga-flow-kit を clone して、中の AGENTS.m
 | `AGENTS.md` | Codex が読む手順書（Codex は自動で読みます） |
 | `docs/決まり.md` | 崩れない漫画の決まり（話の組み立て・台本の書き方・確かめ方） |
 | `templates/script.example.json` | 台本の見本（5コマ・黒帯2本） |
+| `refs/` | お手本の画像（画風・文字入れ）。指示に自動で添付される。自分の好きな画風の見本に替えられる |
 | `tools/build.py` | 台本から画像の指示文を作る／進み具合を見る／1枚に組み立てる |
 | `tools/get_fonts.sh` | 黒帯の文字用フォント（無料）を取る |
 

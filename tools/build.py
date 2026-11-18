@@ -88,6 +88,21 @@ def rel(work, *parts):
     return os.path.relpath(os.path.join(work, *parts), KIT)
 
 
+def refs(kind, limit=2):
+    """お手本（refs/style = 画風、refs/lettering = 文字入れ）の画像。名前順で最大 limit 枚"""
+    d = os.path.join(KIT, "refs", kind)
+    if not os.path.isdir(d):
+        return []
+    fs = sorted(f for f in os.listdir(d) if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp")))
+    return [os.path.relpath(os.path.join(d, f), KIT) for f in fs[:limit]]
+
+
+STYLE_REF_NOTE = ("The image(s) attached AFTER the character sheet(s) are ART STYLE references ONLY: match their line weight, "
+                  "cel shading, palette and level of detail. Do NOT copy their faces, identities, composition or any text.")
+LETTER_REF_NOTE = ("The SECOND attached image is a TYPOGRAPHY STYLE reference ONLY (font feel, vessel style, line weight, "
+                   "text size relative to the panel): do NOT copy its artwork, layout or wording.")
+
+
 # ─────────────── 指示文 ───────────────
 def cast_prompt(s, cid):
     c = s["cast"][cid]
@@ -97,6 +112,7 @@ def cast_prompt(s, cid):
         f"- {c['desc']}",
         "LAYOUT: the same person shown twice side by side on a plain white background: LEFT = front-facing bust-up with a neutral "
         "expression, RIGHT = full body standing, front view. Same face, hairstyle, age, build and outfit in both.",
+    ] + ([STYLE_REF_NOTE.replace("AFTER the character sheet(s) ", "")] if refs("style") else []) + [
         s.get("style") or DEFAULT_STYLE,
         "OUTPUT: Landscape 3:2 image (1536x1024).",
         "ABSOLUTELY NO text, letters, numbers, labels, name tags, logos or watermarks anywhere.",
@@ -120,6 +136,8 @@ def art_prompt(s, u):
         L.append("TEXT ZONES: keep these areas as plain, low-detail background with NO face, hand or important object there "
                  "(speech balloons will be added later): " + "; ".join(zones) + ".")
     L.append("Draw NO speech balloons, NO boxes and NO text of any kind.")
+    if refs("style"):
+        L.append(STYLE_REF_NOTE if sheets else STYLE_REF_NOTE.replace("AFTER the character sheet(s) ", ""))
     L.append(s.get("style") or DEFAULT_STYLE)
     L.append("OUTPUT:")
     L.append(f"{ASPECT[u.get('aspect', '3:2')]}, single panel, no border, filled edge to edge.")
@@ -132,9 +150,9 @@ def letter_prompt(s, u):
     items = [t for t in u.get("text", [])]
     L = [
         "You are a professional Japanese manga letterer for a commercial advertorial manga (広告漫画). "
-        "The attached image is a finished TEXT-FREE panel with NO balloons. Add the Japanese text elements below EXACTLY as "
-        "specified: draw each vessel (balloon / box) AND its text, adapting placement to the actual composition. "
-        "NEVER cover a face, hands or the key acting.",
+        "The FIRST attached image is a finished TEXT-FREE panel with NO balloons. Add the Japanese text elements below EXACTLY "
+        "as specified: draw each vessel (balloon / box) AND its text, adapting placement to the actual composition. "
+        "NEVER cover a face, hands or the key acting." + (" " + LETTER_REF_NOTE if refs("lettering") else ""),
         "READING ORDER (absolute): Japanese right-to-left, top-to-bottom. The FIRST element below is the RIGHTMOST / TOPMOST. "
         "The order below IS the reading order.",
         "TYPOGRAPHY: vertical writing (縦書き). Two-digit numbers and short Latin abbreviations are set TATE-CHU-YOKO "
@@ -210,13 +228,15 @@ def do_prompts(work):
         if not c.get("sheet", True):
             continue
         open(os.path.join(pd, f"cast_{cid}.txt"), "w", encoding="utf-8").write(cast_prompt(s, cid))
-        jobs.append(f"- [ ] {rel(work, 'prompts', f'cast_{cid}.txt')} → {rel(work, 'cast', f'{cid}.png')}")
+        att = refs("style")
+        jobs.append(f"- [ ] {rel(work, 'prompts', f'cast_{cid}.txt')} → {rel(work, 'cast', f'{cid}.png')}"
+                    + (f"（添付: {', '.join(att)}）" if att else ""))
     jobs += ["", "## B. コマの絵（文字も吹き出しも無し）"]
     for u in s["pages"]:
         if u["type"] != "panel":
             continue
         open(os.path.join(pd, f"{u['id']}_art.txt"), "w", encoding="utf-8").write(art_prompt(s, u))
-        att = [rel(work, "cast", f"{c}.png") for c in u.get("cast", []) if s["cast"][c].get("sheet", True)]
+        att = [rel(work, "cast", f"{c}.png") for c in u.get("cast", []) if s["cast"][c].get("sheet", True)] + refs("style")
         jobs.append(f"- [ ] {rel(work, 'prompts', u['id'] + '_art.txt')} → {rel(work, 'art', u['id'] + '.png')}"
                     + (f"（添付: {', '.join(att)}）" if att else ""))
     jobs += ["", "## C. 写植（B の絵を添付して、吹き出しと文字を描き足す）"]
@@ -229,8 +249,9 @@ def do_prompts(work):
             jobs.append(f"- [ ] {u['id']}: 文字なし（写植しない。art をそのまま使う）")
             continue
         open(os.path.join(pd, f"{u['id']}_letter.txt"), "w", encoding="utf-8").write(letter_prompt(s, u))
+        att = [rel(work, "art", u["id"] + ".png")] + refs("lettering", 1)
         jobs.append(f"- [ ] {rel(work, 'prompts', u['id'] + '_letter.txt')} → {rel(work, 'letters', u['id'] + '.png')}"
-                    f"（添付: {rel(work, 'art', u['id'] + '.png')}）")
+                    f"（添付: {', '.join(att)}）")
     jobs += ["", "## D. 組み立て", f"- [ ] python3 tools/build.py assemble {rel(work)}"]
     open(os.path.join(work, "jobs.md"), "w", encoding="utf-8").write("\n".join(jobs) + "\n")
     print(f"prompts: {pd}")
