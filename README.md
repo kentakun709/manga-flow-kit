@@ -15,6 +15,8 @@ https://github.com/kentakun709/manga-flow-kit を clone して、中の AGENTS.m
 
 まず試したいだけなら、題材の代わりに「見本で試して」と書けば、入っている見本の台本で1本作ります。
 
+手元の記事を漫画にしたい時は、記事のファイルを同じフォルダに置いて「題材: この記事（ファイル名）を漫画にして」と書きます。体験の所だけが漫画になり、説明の所は文のまま残ります。
+
 できあがりは `manga-flow-kit/work/<作品名>/final.png`（横1080px の縦長1枚）です。
 
 見本で作るとこうなります → [docs/見本の仕上がり.jpg](docs/見本の仕上がり.jpg)（5コマ＋黒帯2本。Codex に1回頼んだだけで作った物）
@@ -45,7 +47,11 @@ https://github.com/kentakun709/manga-flow-kit を clone して、中の AGENTS.m
 python3 tools/build.py prompts  work/<作品名>   # 台本から指示文と作業の一覧(jobs.md)を作る
 python3 tools/build.py status   work/<作品名>   # 何枚できて何枚残っているか
 python3 tools/build.py assemble work/<作品名>   # 1枚に組み立てる
+python3 tools/build.py flip     work/<作品名> <コマ>          # 絵を左右反転（話す人の左右が逆だった時）
+python3 tools/build.py touch    work/<作品名> <コマ> "<直す所>"  # できた画像の1か所だけを直す指示文を作る
 ```
+
+作り直す時は、台本のそのコマに `"fix": {"art": "…", "letter": "…"}`（直す所を英語で1文）を書いて `prompts` を走らせ直すと、指示文の最後に足されます。
 
 ## 注意
 

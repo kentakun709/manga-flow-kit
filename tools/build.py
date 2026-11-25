@@ -5,6 +5,8 @@
   python3 tools/build.py prompts  work/<作品>   台本(script.json)から画像生成の指示文と jobs.md を作る
   python3 tools/build.py status   work/<作品>   どの画像ができていて、どれが残っているかを出す
   python3 tools/build.py assemble work/<作品>   できたコマと黒帯を縦に並べて final.png / final.jpg にする
+  python3 tools/build.py flip     work/<作品> <コマ>          コマの絵（文字なし）を左右反転する（話す人の左右が逆の時）
+  python3 tools/build.py touch    work/<作品> <コマ> "<直す所>"  できた画像の「1か所だけ」を直す指示文を作る
 
 画像そのものは作らない（画像は Codex の image_gen で作る）。手順は AGENTS.md。
 台本の書き方は templates/script.example.json と docs/決まり.md。
@@ -77,6 +79,9 @@ def load(work):
                     sys.exit(f"{u['id']}: pos が不明です: {t['pos']}")
             if u.get("aspect", "3:2") not in ASPECT:
                 sys.exit(f"{u['id']}: aspect は {list(ASPECT)} のどれか")
+            fix = u.get("fix", {})
+            if not isinstance(fix, dict) or set(fix) - {"art", "letter"}:
+                sys.exit(f"{u['id']}: fix は {{\"art\": \"...\", \"letter\": \"...\"}} の形（英語で1文ずつ）")
     return s
 
 
@@ -136,6 +141,8 @@ def art_prompt(s, u):
         L.append("TEXT ZONES: keep these areas as plain, low-detail background with NO face, hand or important object there "
                  "(speech balloons will be added later): " + "; ".join(zones) + ".")
     L.append("Draw NO speech balloons, NO boxes and NO text of any kind.")
+    if u.get("fix", {}).get("art"):
+        L.append("FIX FROM THE PREVIOUS TRY (most important; keep everything else as described): " + u["fix"]["art"])
     if refs("style"):
         L.append(STYLE_REF_NOTE if sheets else STYLE_REF_NOTE.replace("AFTER the character sheet(s) ", ""))
     L.append(s.get("style") or DEFAULT_STYLE)
@@ -207,6 +214,8 @@ def letter_prompt(s, u):
                      "same font, same size, no bracket marks drawn.")
         if t.get("hint"):
             L.append(f"   PLACEMENT NOTE: {t['hint']}")
+    if u.get("fix", {}).get("letter"):
+        L.append("FIX FROM THE PREVIOUS TRY (most important; keep everything else as specified): " + u["fix"]["letter"])
     L.append("PRESERVE the artwork completely: do not redraw, recolor, crop, pad or add borders; keep the image size and aspect. "
              "Do not add any characters, marks or symbols not listed. Do not draw the bracket characters 《》.")
     L.append("Write ALL text EXACTLY character-for-character as given above. No additions, no rephrasing, no extra punctuation.")
@@ -239,6 +248,9 @@ def do_prompts(work):
         att = [rel(work, "cast", f"{c}.png") for c in u.get("cast", []) if s["cast"][c].get("sheet", True)] + refs("style")
         jobs.append(f"- [ ] {rel(work, 'prompts', u['id'] + '_art.txt')} → {rel(work, 'art', u['id'] + '.png')}"
                     + (f"（添付: {', '.join(att)}）" if att else ""))
+    jobs += ["- [ ] B が全部できたら、絵の左右を確かめる: 2人以上のコマで、先に話す人（台本の先の台詞の pos の側）に"
+             "その人がいるか。逆なら `python3 tools/build.py flip " + rel(work) + " <コマ>` で絵を左右反転するか、"
+             "台本の pos を左右入れ替えて prompts を作り直す（AGENTS.md の手順4）"]
     jobs += ["", "## C. 写植（B の絵を添付して、吹き出しと文字を描き足す）"]
     for u in s["pages"]:
         if u["type"] != "panel":
@@ -272,6 +284,79 @@ def do_status(work):
         if p not in done:
             print("  まだ:", os.path.relpath(p, KIT))
     return len(done) == len(need)
+
+
+# ─────────────── 1か所だけの直し ───────────────
+def keep_old(work, path):
+    """直す前の画像を work/old/ に写して残す（同じ名前があれば番号を足す）"""
+    import shutil
+    od = os.path.join(work, "old")
+    os.makedirs(od, exist_ok=True)
+    base = os.path.basename(os.path.dirname(path)) + "_" + os.path.basename(path)
+    dst, n = os.path.join(od, base), 2
+    while os.path.exists(dst):
+        dst = os.path.join(od, base.replace(".png", f"_{n}.png"))
+        n += 1
+    shutil.copy2(path, dst)
+    return dst
+
+
+def panel(work, uid):
+    s = load(work)
+    for u in s["pages"]:
+        if u["type"] == "panel" and u["id"] == uid:
+            return s, u
+    sys.exit(f"台本にコマ {uid} がありません")
+
+
+def do_flip(work, uid):
+    from PIL import Image, ImageOps
+    panel(work, uid)
+    art = os.path.join(work, "art", f"{uid}.png")
+    if not os.path.exists(art):
+        sys.exit(f"絵がまだありません: {rel(work, 'art', uid + '.png')}")
+    print("直す前の絵:", os.path.relpath(keep_old(work, art), KIT))
+    ImageOps.mirror(Image.open(art)).save(art)
+    print("左右反転した:", rel(work, "art", uid + ".png"))
+    print("髪の分け目・服の柄・利き手が、前後のコマと逆に見えないか開いて確かめる。")
+    let = os.path.join(work, "letters", f"{uid}.png")
+    if os.path.exists(let):
+        moved = keep_old(work, let)
+        os.remove(let)
+        print("写植は反転前の絵に描いた物なので old/ へ退かした:", os.path.relpath(moved, KIT))
+        print(f"→ jobs.md の C の {uid} を [ ] に戻して、写植を作り直す。")
+
+
+def do_touch(work, uid, change):
+    panel(work, uid)
+    src = None
+    for d in ("letters", "art"):
+        p = os.path.join(work, d, f"{uid}.png")
+        if os.path.exists(p):
+            src = p
+            break
+    if not src:
+        sys.exit(f"{uid} の画像がまだありません")
+    old = keep_old(work, src)
+    has_text = os.path.basename(os.path.dirname(src)) == "letters"
+    keep = ("every speech balloon, box and Japanese character (same wording, same position, same size, same font), "
+            if has_text else "")
+    txt = "\n".join([
+        "TASK: edit the attached finished manga panel. Make exactly ONE change:",
+        change,
+        "KEEP EVERYTHING ELSE EXACTLY AS IT IS: " + keep + "every face, hairstyle and outfit, the composition, colors and "
+        "line style, and the image size and aspect.",
+        "Do not crop, pad or add borders. Do not add any new text, marks, symbols or characters." + (
+            "" if has_text else " The panel must stay free of any text or balloons."),
+    ])
+    pd = os.path.join(work, "prompts")
+    os.makedirs(pd, exist_ok=True)
+    out = os.path.join(pd, f"{uid}_touch.txt")
+    open(out, "w", encoding="utf-8").write(txt + "\n")
+    print("指示文:  ", os.path.relpath(out, KIT))
+    print("添付:    ", os.path.relpath(old, KIT), "（直す前の写し）")
+    print("保存先:  ", os.path.relpath(src, KIT), "（上書き）")
+    print("できたら直した所と、ほかが変わっていないこと（写植なら台詞を expected と一字ずつ）を確かめる。")
 
 
 # ─────────────── 組み立て ───────────────
@@ -362,7 +447,16 @@ def do_assemble(work):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3 or sys.argv[1] not in ("prompts", "status", "assemble"):
+    if len(sys.argv) < 3 or sys.argv[1] not in ("prompts", "status", "assemble", "flip", "touch"):
         sys.exit(__doc__)
     work = os.path.abspath(sys.argv[2])
-    {"prompts": do_prompts, "status": do_status, "assemble": do_assemble}[sys.argv[1]](work)
+    if sys.argv[1] == "flip":
+        if len(sys.argv) != 4:
+            sys.exit("使い方: python3 tools/build.py flip work/<作品> <コマ>")
+        do_flip(work, sys.argv[3])
+    elif sys.argv[1] == "touch":
+        if len(sys.argv) != 5:
+            sys.exit('使い方: python3 tools/build.py touch work/<作品> <コマ> "<直す所を英語で1文>"')
+        do_touch(work, sys.argv[3], sys.argv[4])
+    else:
+        {"prompts": do_prompts, "status": do_status, "assemble": do_assemble}[sys.argv[1]](work)
